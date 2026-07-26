@@ -8,6 +8,8 @@ import { HistoryList } from "./components/HistoryList";
 import { AnalysisType, ScamAnalysisResult } from "./types";
 import { ShieldCheck, ShieldAlert, CheckCircle2 } from "lucide-react";
 
+import { analyzeWithClientGemini } from "./lib/clientAnalyzer";
+
 export default function App() {
   const [activeTab, setActiveTab] = useState<"analyzer" | "library" | "quiz" | "history">("analyzer");
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -52,23 +54,29 @@ export default function App() {
     setError(null);
 
     try {
-      const res = await fetch("/api/analyze", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
+      let data: ScamAnalysisResult;
 
-      if (!res.ok) {
-        if (res.status === 404 || res.status === 405) {
-          throw new Error("Backend service /api/analyze is unreachable (HTTP 404). If hosting on static Netlify, the Express backend server is not running on Netlify static hosting.");
+      try {
+        const res = await fetch("/api/analyze", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (res.ok) {
+          data = await res.json();
+        } else {
+          // If server API route is not found or fails (e.g. static hosting on Netlify / GitHub Pages)
+          console.warn(`Server API returned status ${res.status}. Falling back to client-side Gemini analysis...`);
+          data = await analyzeWithClientGemini(payload);
         }
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || `Server returned error status ${res.status}`);
+      } catch (networkOrServerErr) {
+        console.warn("Express API endpoint unreachable. Falling back to direct client-side Gemini AI analysis...", networkOrServerErr);
+        data = await analyzeWithClientGemini(payload);
       }
 
-      const data: ScamAnalysisResult = await res.json();
       setActiveResult(data);
     } catch (err: any) {
       console.error("Analysis Error:", err);
