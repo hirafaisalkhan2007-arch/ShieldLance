@@ -1,0 +1,6 @@
+{
+  "name": "Freelance Scam Checker",
+  "description": "An AI-powered scam analysis tool for freelancers to evaluate job posts, client messages, contracts, and payment requests for red flags.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
